@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  DRIVER
+  VIEWER
+  ANALYST
+  SAFETY_OFFICER
+  DISPATCHER
+}
+
+enum VehicleStatus {
+  Available
+  OnTrip
+  InShop
+  Retired
+}
+
+enum DriverStatus {
+  OnDuty
+  OffDuty
+  Suspended
+}
+
+enum TripStatus {
+  Draft
+  Dispatched
+  Completed
+  Cancelled
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+}
+
+model Vehicle {
+  id              String        @id @default(cuid())
+  name            String
+  licensePlate    String
+  maxCapacity     Int
+  odometer        Int
+  acquisitionCost Decimal       @default(0)
+  type            String?
+  status          VehicleStatus @default(Available)
+  createdAt       DateTime      @default(now())
+  trips           Trip[]
+  fuelLogs        FuelLog[]
+  expenses        Expense[]
+  maintenanceLogs MaintenanceLog[]
+}
+
+model Driver {
+  id             String       @id @default(cuid())
+  name           String
+  licenseNumber  String?
+  licenseExpiry  DateTime
+  safetyScore    Float?
+  status         DriverStatus @default(OffDuty)
+  createdAt      DateTime     @default(now())
+  trips          Trip[]
+}
+
+model Trip {
+  id             String     @id @default(cuid())
+  vehicleId      String
+  driverId       String
+  cargoWeight    Int
+  revenue        Decimal
+  startOdo       Int
+  endOdo         Int?
+  origin         String?
+  destination    String?
+  scheduledDate  DateTime?
+  distance       Int?
+  status         TripStatus @default(Draft)
+  createdAt      DateTime   @default(now())
+  vehicle        Vehicle    @relation(fields: [vehicleId], references: [id])
+  driver         Driver     @relation(fields: [driverId], references: [id])
+}
+
+model FuelLog {
+  id        String   @id @default(cuid())
+  vehicleId String
+  liters    Float
+  cost      Decimal
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
+}
+
+model Expense {
+  id        String  @id @default(cuid())
+  vehicleId String
+  amount    Decimal
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+model MaintenanceLog {
+  id          String    @id @default(cuid())
+  vehicleId   String
+  cost        Decimal
+  issue       String?
+  serviceDate DateTime?
+  vehicle     Vehicle   @relation(fields: [vehicleId], references: [id])
+}
